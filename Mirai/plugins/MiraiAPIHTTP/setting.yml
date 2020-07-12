@@ -1,0 +1,7 @@
+host: '127.0.0.1'
+port: 8080          
+authKey: sjtusebot1234  
+cacheSize: 4096
+enableWebsocket: true
+cors: 
+  - '*'
