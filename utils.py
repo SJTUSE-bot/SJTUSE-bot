@@ -64,7 +64,6 @@ def TryPost(url, data, isSession=True):
     return Post(url, data, isSession)
 
 
-@checkCode
 def UploadURL(url, picType):
     r = requests.get(url)
     if r.status_code != 200:
