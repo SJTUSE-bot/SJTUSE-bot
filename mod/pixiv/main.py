@@ -11,33 +11,25 @@ def OnMessage(msg):
                 'https://api.lolicon.app/setu/', params={
                     'apikey': '522605455f0c66a4a242d8',
                     'size1200': 'true',
-                    'r18': 0,
+                    'r18': 0
                 })
-            if r.status_code != 200:
-                utils.TryPost('/sendGroupMessage', {
-                    'target': group,
-                    'messageChain': [
-                        {'type': 'Plain', 'text': '涩图暂不可用，多运动少冲！'},
-                    ]
-                })
-                print('[pixiv] send fail status', r.status_code)
-                return
-            r = json.loads(r.text)
-            if r['code'] == 0:
-                r = utils.UploadURL(r['data'][0]['url'], 'group')
-                print(r)
-                utils.TryPost('/sendGroupMessage', {
-                    'target': group,
-                    'messageChain': [
-                        {'type': 'Image', 'imageId': r['imageId']},
-                    ]
-                })
-                print('[pixiv] send')
-            else:
-                utils.TryPost('/sendGroupMessage', {
-                    'target': group,
-                    'messageChain': [
-                        {'type': 'Plain', 'text': '涩图暂不可用，多运动少冲！'},
-                    ]
-                })
-                print('[pixiv] send fail code', r['code'])
+            if r.status_code == 200:
+                r = json.loads(r.text)
+                if r['code'] == 0:
+                    r = utils.UploadURL(r['data'][0]['url'], 'group')
+                    if r != None:
+                        utils.TryPost('/sendGroupMessage', {
+                            'target': group,
+                            'messageChain': [
+                                {'type': 'Image', 'imageId': r['imageId']},
+                            ]
+                        })
+                        print('[pixiv] send')
+                        return
+            utils.TryPost('/sendGroupMessage', {
+                'target': group,
+                'messageChain': [
+                    {'type': 'Plain', 'text': '涩图暂不可用，多运动少冲！'},
+                ]
+            })
+            print('[pixiv] send fail code', r['code'])

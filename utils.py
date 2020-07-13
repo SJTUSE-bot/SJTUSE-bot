@@ -66,7 +66,10 @@ def TryPost(url, data, isSession=True):
 
 @checkCode
 def UploadURL(url, picType):
-    r = requests.get(url).content
+    r = requests.get(url)
+    if r.status_code != 200:
+        return None
+    r = r.content
     temp = tempfile.TemporaryFile()
     temp.write(r)
     temp.seek(0)
