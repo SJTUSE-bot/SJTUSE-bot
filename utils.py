@@ -4,7 +4,7 @@ import traceback
 from decorator import decorator
 
 baseURL = ''
-session = ''
+sessionKey = ''
 qqNumber = 0
 
 
@@ -31,7 +31,7 @@ def Get(url, params=None, isSession=True):
     if isSession:
         if params == None:
             params = {}
-        params['sessionKey'] = session
+        params['sessionKey'] = sessionKey
     return json.loads(requests.get(baseURL + url, params=params).text)
 
 
@@ -49,7 +49,7 @@ def Post(url, data, isSession=True):
     if isSession:
         if data == None:
             data = {}
-        data['sessionKey'] = session
+        data['sessionKey'] = sessionKey
     return json.loads(requests.post(baseURL + url, json=data).text)
 
 

@@ -1,20 +1,31 @@
 import os
 import click
 import utils
-import mod.lboss.main
+import json
+import websocket
+from mod.lboss import main as lboss
+from mod.repeater import main as repeater
+from mod.pixiv import main as pixiv
 
 
 def Auth():
     r = utils.MustPost('/auth', {
         'authKey': 'sjtusebot1234',
     }, isSession=False)
-    utils.session = r['session']
-    print('Auth success, key:', utils.session)
+    utils.sessionKey = r['session']
+    print('Auth success, key:', utils.sessionKey)
 
     utils.MustPost('/verify', {
         'qq': utils.qqNumber,
     })
     print('Verify success, qq:', utils.qqNumber)
+
+
+def onMessage(ws, message):
+    message = json.loads(message)
+
+    pixiv.OnMessage(message)
+    repeater.OnMessage(message)
 
 
 @click.command(context_settings=dict(help_option_names=['-h', '--help']))
@@ -43,9 +54,12 @@ def cli(host, qq):
                     ]
                 })
 
-    mod.lboss.main.Entry()
-    while(1):
-        pass
+    lboss.Entry()
+
+    wsURL = "ws://" + utils.baseURL.split("://", 2)[1]
+    ws = websocket.WebSocketApp(wsURL + "/message?sessionKey=" +
+                                utils.sessionKey, on_message=onMessage)
+    ws.run_forever()
 
 
 if __name__ == "__main__":
