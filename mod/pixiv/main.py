@@ -24,10 +24,12 @@ def OnMessage(msg):
                 return
             r = json.loads(r.text)
             if r['code'] == 0:
+                r = utils.UploadURL(r['data'][0]['url'], 'group')
+                print(r)
                 utils.TryPost('/sendGroupMessage', {
                     'target': group,
                     'messageChain': [
-                        {'type': 'Image', 'url': r['data'][0]['url']},
+                        {'type': 'Image', 'imageId': r['imageId']},
                     ]
                 })
                 print('[pixiv] send')

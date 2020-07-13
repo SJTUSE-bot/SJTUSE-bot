@@ -62,3 +62,18 @@ def MustPost(url, data, isSession=True):
 @checkCode
 def TryPost(url, data, isSession=True):
     return Post(url, data, isSession)
+
+
+@checkCode
+def UploadURL(url, picType):
+    r = requests.get(url).content
+    temp = tempfile.TemporaryFile()
+    temp.write(r)
+    temp.seek(0)
+    files = {'img': temp}
+    r = json.loads(requests.post(baseURL + '/uploadImage', data={
+        'sessionKey': sessionKey,
+        'type': picType,
+    }, files=files).text)
+    temp.close()
+    return r
