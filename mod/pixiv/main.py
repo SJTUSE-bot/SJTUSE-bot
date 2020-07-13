@@ -17,6 +17,7 @@ def OnMessage(msg):
                 r = json.loads(r.text)
                 if r['code'] == 0:
                     r = utils.UploadURL(r['data'][0]['url'], 'group')
+                    print(r)
                     if r != None:
                         utils.TryPost('/sendGroupMessage', {
                             'target': group,
