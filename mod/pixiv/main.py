@@ -7,17 +7,35 @@ def OnMessage(msg):
     if msg['type'] == 'GroupMessage' and (2 <= len(msg['messageChain']) <= 3) and msg['messageChain'][1]['type'] == 'At' and msg['messageChain'][1]['target'] == utils.qqNumber:
         if len(msg['messageChain']) == 2 or (len(msg['messageChain']) == 3 and msg['messageChain'][2]['type'] == 'Plain'and msg['messageChain'][2]['text'] == ' '):
             group = msg['sender']['group']['id']
-            r = json.loads(requests.get(
+            r = requests.get(
                 'https://api.lolicon.app/setu/', params={
                     'apikey': '522605455f0c66a4a242d8',
                     'size1200': 'true',
                     'r18': 0,
-                }).text)
-            if r['code'] != 0:
-                utils.Post('/sendImageMessage', {
-                    'group': group,
-                    "urls": [
-                        r['data'][0]['url'],
+                })
+            if r.status_code != 200:
+                utils.TryPost('/sendGroupMessage', {
+                    'target': group,
+                    'messageChain': [
+                        {'type': 'Plain', 'text': '涩图暂不可用，多运动少冲！'},
+                    ]
+                })
+                print('[pixiv] send fail status', r.status_code)
+                return
+            r = json.loads(r.text)
+            if r['code'] == 0:
+                utils.TryPost('/sendGroupMessage', {
+                    'target': group,
+                    'messageChain': [
+                        {'type': 'Image', 'url': r['data'][0]['url']},
                     ]
                 })
                 print('[pixiv] send')
+            else:
+                utils.TryPost('/sendGroupMessage', {
+                    'target': group,
+                    'messageChain': [
+                        {'type': 'Plain', 'text': '涩图暂不可用，多运动少冲！'},
+                    ]
+                })
+                print('[pixiv] send fail code', r['code'])

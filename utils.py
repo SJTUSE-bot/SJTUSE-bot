@@ -2,6 +2,7 @@ import requests
 import json
 import traceback
 from decorator import decorator
+import tempfile
 
 baseURL = ''
 sessionKey = ''
