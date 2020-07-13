@@ -74,9 +74,12 @@ def UploadURL(url, picType):
     temp.write(r)
     temp.seek(0)
     files = {'img': temp}
-    r = json.loads(requests.post(baseURL + '/uploadImage', data={
+    r = requests.post(baseURL + '/uploadImage', data={
         'sessionKey': sessionKey,
         'type': picType,
-    }, files=files).text)
+    }, files=files)
+    if r.status_code != 200:
+        return None
+    r = json.loads(r.text)
     temp.close()
     return r
