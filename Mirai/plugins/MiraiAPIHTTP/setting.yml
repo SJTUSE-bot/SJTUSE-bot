@@ -1,5 +1,5 @@
 host: '127.0.0.1'
-port: 8080          
+port: 9500          
 authKey: sjtusebot1234  
 cacheSize: 4096
 enableWebsocket: true

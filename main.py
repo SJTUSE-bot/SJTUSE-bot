@@ -1,70 +1,52 @@
-import requests
-import json
-import time
 import os
-from decorator import decorator
-
-baseURL = "http://localhost:8080"
-session = ''
-
-
-@decorator
-def checkCode(func, *args, **kw):
-    r = func(*args, **kw)
-    if r['code'] != 0:
-        print(r)
-    return r
-
-
-@checkCode
-def Get(url):
-    return json.loads(requests.get(baseURL + url).text)
-
-
-@checkCode
-def Post(url, data):
-    return json.loads(requests.post(baseURL + url, json=data).text)
+import click
+import utils
+import mod.lboss.main
 
 
 def Auth():
-    global session
-
-    r = Post('/auth', {
+    r = utils.MustPost('/auth', {
         'authKey': 'sjtusebot1234',
-    })
-    session = r['session']
-    print('Auth success, key:', session)
+    }, isSession=False)
+    utils.session = r['session']
+    print('Auth success, key:', utils.session)
 
-    r = Post('/verify', {
-        'sessionKey': session,
-        'qq': os.environ['qq'],
+    utils.MustPost('/verify', {
+        'qq': utils.qqNumber,
     })
-    print('Verify success, qq:', os.environ['qq'])
+    print('Verify success, qq:', utils.qqNumber)
+
+
+@click.command(context_settings=dict(help_option_names=['-h', '--help']))
+@click.option('--host', help="Mirai HTTP host", type=str, default="http://localhost:9500", show_default=True)
+@click.argument('qq', type=int, required=True, nargs=1)
+def cli(host, qq):
+    utils.baseURL = host
+    utils.qqNumber = qq
+    print("Mirai host is set to", utils.baseURL)
+    print("QQ number is set to", utils.qqNumber)
+
+    r = utils.MustGet('/about', isSession=False)
+    print("Mirai HTTP version:", r['data']['version'])
+    Auth()
+
+    if not os.path.exists(".new"):
+        open('.new', 'w').close()
+        r = utils.Get('/groupList')
+        with open('News', 'r') as f:
+            news = f.read()
+            for i in r:
+                utils.TryPost('/sendGroupMessage', {
+                    'target': i['id'],
+                    'messageChain': [
+                        {'type': 'Plain', 'text': news},
+                    ]
+                })
+
+    mod.lboss.main.Entry()
+    while(1):
+        pass
 
 
 if __name__ == "__main__":
-    r = Get('/about')
-    print("Mirai HTTP version:", r['data']['version'])
-    Auth()
-    Post('/sendGroupMessage', {
-        'sessionKey': session,
-        'target': 666041783,
-        'messageChain': [
-            {'type': 'Plain', 'text': '大家好我是SJTUSE-Bot，目前只有一个功能每天早上8点提醒LBOSS女装，后面可能会加其他功能:)'},
-        ]
-    })
-
-    while True:
-        tm = time.localtime(time.time())
-        if tm.tm_hour == 8 and tm.tm_min == 0:
-            Post('/sendGroupMessage', {
-                'sessionKey': session,
-                'target': 666041783,
-                'messageChain': [
-                    # {"type": "At", "target": },
-                    {'type': 'Plain', 'text': 'LBOSS今天女装了🐴'},
-                ]
-            })
-            print("sended")
-            time.sleep(86340)   # 24h-60s
-        time.sleep(1)
+    cli()

@@ -3,3 +3,5 @@ Mirai/*
 Mirai/plugins/*
 !Mirai/plugins/MiraiAPIHTTP
 Mirai/plugins/MiraiAPIHTTP/images
+.new
+__pycache__
