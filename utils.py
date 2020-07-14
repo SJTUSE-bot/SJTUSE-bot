@@ -64,8 +64,8 @@ def TryPost(url, data, isSession=True):
     return Post(url, data, isSession)
 
 
-def UploadURL(url, picType):
-    r = requests.get(url)
+def UploadURL(url, picType, ttl):
+    r = requests.get(url, timeout=ttl)
     if r.status_code != 200:
         return None
     r = r.content
