@@ -9,6 +9,77 @@ sessionKey = ''
 qqNumber = 0
 
 
+def MessageQuickSend(message_type="GroupMessage", qq=0, group=0, msg=""):
+    m = Message(message_type, qq, group)
+    m.appendPlain(msg)
+    return m.send()
+
+
+class Message:
+    def __init__(self, message_type="GroupMessage", qq=0, group=0):
+        self.chain = []
+        self.message_type = message_type
+        self.qq = qq
+        self.group = group
+
+    def send(self):
+        if self.message_type == "TempMessage":
+            return TryPost('/sendTempMessage', {
+                'qq': self.qq,
+                'group': self.group,
+                'messageChain': json.dumps(self.chain)
+            })
+        elif self.message_type == "FriendMessage":
+            return TryPost('/sendFriendMessage', {
+                'target': self.qq,
+                'messageChain': json.dumps(self.chain)
+            })
+        else:
+            return TryPost('/sendFriendMessage', {
+                'target': self.group,
+                'messageChain': json.dumps(self.chain)
+            })
+
+    def appendPlain(self, msg):
+        self.chain.append({
+            "type": "Plain",
+            "text": msg,
+        })
+
+    def appendAt(self, id):
+        self.chain.append({
+            "type": "At",
+            "target": id
+        })
+
+    def appendAtAll(self):
+        self.chain.append({
+            "type": "AtAll"
+        })
+
+    def appendFace(self, faceId=-1, name=""):
+        if faceId == -1:
+            self.chain.append({
+                "type": "Face",
+                "name": name,
+            })
+        else:
+            self.chain.append({
+                "type": "Face",
+                "faceId": faceId
+            })
+
+    def strip(self):
+        if len(self.chain) == 0:
+            return
+        if type(self.chain[0]) == str:
+            self.chain[0] = self.chain[0].strip()
+        if type(self.chain[-1]) == str:
+            self.chain[-1] = self.chain[-1].strip()
+
+    # other message type can refer there: https://github.com/project-mirai/mirai-api-http/blob/master/MessageType.md
+
+
 @decorator
 def checkCode(func, *args, **kw):
     r = func(*args, **kw)
@@ -86,12 +157,7 @@ def UploadURL(url, picType):
 
 
 def SendGroupPlain(group, msg):
-    return TryPost('/sendGroupMessage', {
-        'target': group,
-        'messageChain': [
-            {'type': 'Plain', 'text': msg},
-        ]
-    })
+    return MessageQuickSend(message_type="GroupMessage", group=group, msg=msg)
 
 
 @decorator
