@@ -19,12 +19,7 @@ def OnMessage(msg):
                 history[group]['times'] = 1
 
             if history[group]['times'] == 3:
-                utils.TryPost('/sendGroupMessage', {
-                    'target': group,
-                    'messageChain': [
-                        {'type': 'Plain', 'text': text},
-                    ]
-                })
+                utils.SendGroupPlain(group, text)
                 print('[repeater] send')
         else:
             if group not in history:

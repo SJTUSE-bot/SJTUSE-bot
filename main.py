@@ -47,12 +47,7 @@ def cli(host, qq):
         with open('News', 'r') as f:
             news = f.read()
             for i in r:
-                utils.TryPost('/sendGroupMessage', {
-                    'target': i['id'],
-                    'messageChain': [
-                        {'type': 'Plain', 'text': news},
-                    ]
-                })
+                utils.SendGroupPlain(i['id'], news)
 
     lboss.Entry()
 
