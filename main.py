@@ -9,9 +9,9 @@ from mod.pixiv import main as pixiv
 from mod.ty import main as ty
 
 
-def Auth():
+def Auth(key):
     r = utils.MustPost('/auth', {
-        'authKey': 'sjtusebot1234',
+        'authKey': key,
     }, isSession=False)
     utils.sessionKey = r['session']
     print('Auth success, key:', utils.sessionKey)
@@ -32,8 +32,9 @@ def onMessage(ws, message):
 
 @click.command(context_settings=dict(help_option_names=['-h', '--help']))
 @click.option('--host', help="Mirai HTTP host", type=str, default="http://localhost:9500", show_default=True)
+@click.option('--key', help="Mirai HTTP key", type=str, default="sjtusebot1234", show_default=True)
 @click.argument('qq', type=int, required=True, nargs=1)
-def cli(host, qq):
+def cli(host, key, qq):
     with open('VERSION', 'r') as f:
         version = f.read()
         print('SJTUSE-bot v' + version)
@@ -45,7 +46,7 @@ def cli(host, qq):
 
     r = utils.MustGet('/about', isSession=False)
     print("Mirai HTTP version:", r['data']['version'])
-    Auth()
+    Auth(key)
 
     if not os.path.exists(".new"):
         open('.new', 'w').close()
