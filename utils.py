@@ -91,8 +91,9 @@ def SendGroupPlain(group, msg):
 
 
 @decorator
-def CheckAt(func, msg, trigger='', *args, **kw):
+def CheckAt(func, msg=0, trigger='', *args, **kw):
     r = None
+    msg = args[msg]
     if trigger == '':
         if msg['type'] == 'GroupMessage' and (2 <= len(msg['messageChain']) <= 3) and msg['messageChain'][1]['type'] == 'At' and msg['messageChain'][1]['target'] == qqNumber:
             if len(msg['messageChain']) == 2 or (len(msg['messageChain']) == 3 and msg['messageChain'][2]['type'] == 'Plain'and msg['messageChain'][2]['text'] == ' '):
