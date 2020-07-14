@@ -3,7 +3,7 @@ import requests
 import json
 
 
-@utils.CheckAt
+@utils.CheckAt(msg=msg)
 def OnMessage(msg):
     try:
         group = msg['sender']['group']['id']
