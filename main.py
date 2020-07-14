@@ -23,11 +23,11 @@ def Auth():
 
 
 def onMessage(ws, message):
+    message = json.loads(message)
     group = message['sender']['group']['id']
     target = utils.target
     if target != 'broadcast' and int(target) != group:
         return
-    message = json.loads(message)
 
     pixiv.OnMessage(message)
     repeater.OnMessage(message)
