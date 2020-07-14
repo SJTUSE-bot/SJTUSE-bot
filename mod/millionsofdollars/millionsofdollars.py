@@ -105,7 +105,8 @@ class Game:
     async def show_balance(self):
         msg_list = []
         for player in self.players:
-            msg_list.append(f"{ at(player.qq_id) }：{player.balance}00万美金，威胁卡数量：{player.intimidation}")
+            msg_list.append(
+                f"{ at(player.qq_id) }：{player.balance}00万美金，威胁卡数量：{player.intimidation}")
         await MDGlobal.bot.send_group_msg(group_id=self.group_id, message="当前财产状况：\n" + '\n'.join(msg_list))
 
     async def do_phrase(self):
@@ -219,7 +220,8 @@ class Game:
             for r in d:
                 if self.loot.role == r:
                     d[r] += 1
-                msg_list.append(f"{MDGlobal.card_name[r]}：{d[r]}00万美金" + ("、1张威胁卡" if r == Player.Role.Brute else ""))
+                msg_list.append(
+                    f"{MDGlobal.card_name[r]}：{d[r]}00万美金" + ("、1张威胁卡" if r == Player.Role.Brute else ""))
                 self.loot_players[r].add_balance(
                     d[r] + self.ante[self.loot_players[r].qq_id])
             msg += '\n'.join(msg_list)
@@ -334,7 +336,8 @@ async def million_dollars(session: CommandSession):
 
     if args[0] in ["告密者", "暴徒", "恶棍", "司机", "谋士"]:
         if game.phrase == Game.Phrase.Planning and MDGlobal.player_map[user_id].role == 0:
-            MDGlobal.player_map[user_id].role = MDGlobal.card_name.index(args[0])
+            MDGlobal.player_map[user_id].role = MDGlobal.card_name.index(
+                args[0])
         await session.send(f"你已选择{args[0]}角色")
         await game.try_next()
         return

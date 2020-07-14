@@ -83,3 +83,26 @@ def UploadURL(url, picType):
     r = json.loads(r.text)
     temp.close()
     return r
+
+
+def SendGroupPlain(group, msg):
+    return TryPost('/sendGroupMessage', {
+        'target': group,
+        'messageChain': [
+            {'type': 'Plain', 'text': msg},
+        ]
+    })
+
+
+@decorator
+def CheckAt(func, msg, trigger='', *args, **kw):
+    r = None
+    if trigger == '':
+        if msg['type'] == 'GroupMessage' and (2 <= len(msg['messageChain']) <= 3) and msg['messageChain'][1]['type'] == 'At' and msg['messageChain'][1]['target'] == qqNumber:
+            if len(msg['messageChain']) == 2 or (len(msg['messageChain']) == 3 and msg['messageChain'][2]['type'] == 'Plain'and msg['messageChain'][2]['text'] == ' '):
+                r = func(*args, **kw)
+    else:
+        if msg['type'] == 'GroupMessage' and len(msg['messageChain']) == 3 and msg['messageChain'][1]['type'] == 'At' and msg['messageChain'][1]['target'] == qqNumber:
+            if msg['messageChain'][2]['type'] == 'Plain' and msg['messageChain'][2]['text'].lstrip() in trigger.split('|'):
+                r = func(*args, **kw)
+    return r

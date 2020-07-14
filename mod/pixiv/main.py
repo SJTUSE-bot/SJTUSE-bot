@@ -3,6 +3,7 @@ import requests
 import json
 
 
+@CheckAt
 def OnMessage(msg):
     if msg['type'] == 'GroupMessage' and (2 <= len(msg['messageChain']) <= 3) and msg['messageChain'][1]['type'] == 'At' and msg['messageChain'][1]['target'] == utils.qqNumber:
         if len(msg['messageChain']) == 2 or (len(msg['messageChain']) == 3 and msg['messageChain'][2]['type'] == 'Plain'and msg['messageChain'][2]['text'] == ' '):
@@ -26,10 +27,5 @@ def OnMessage(msg):
                         })
                         print('[pixiv] send')
                         return
-            utils.TryPost('/sendGroupMessage', {
-                'target': group,
-                'messageChain': [
-                    {'type': 'Plain', 'text': '涩图暂不可用，多运动少冲！'},
-                ]
-            })
-            print('[pixiv] send fail code', r['code'])
+            utils.SendGroupPlain(group, '涩图暂不可用，多运动少冲！')
+            print('[pixiv] send fail')
