@@ -31,10 +31,11 @@ def onMessage(ws, message):
 
 
 @click.command(context_settings=dict(help_option_names=['-h', '--help']))
+@click.option('--news', help="Show news", type=bool, default=False, show_default=True)
 @click.option('--host', help="Mirai HTTP host", type=str, default="http://localhost:9500", show_default=True)
 @click.option('--key', help="Mirai HTTP key", type=str, default="sjtusebot1234", show_default=True)
 @click.argument('qq', type=int, required=True, nargs=1)
-def cli(host, key, qq):
+def cli(news, host, key, qq):
     with open('VERSION', 'r') as f:
         version = f.read()
         print('SJTUSE-bot v' + version)
@@ -48,10 +49,9 @@ def cli(host, key, qq):
     print("Mirai HTTP version:", r['data']['version'])
     Auth(key)
 
-    if not os.path.exists(".new"):
-        open('.new', 'w').close()
+    if news:
         r = utils.Get('/groupList')
-        with open('News', 'r') as f:
+        with open('NEWS', 'r') as f:
             news = f.read()
             for i in r:
                 utils.SendGroupPlain(i['id'], news)
