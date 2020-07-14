@@ -8,6 +8,8 @@ from mod.repeater import main as repeater
 from mod.pixiv import main as pixiv
 from mod.ty import main as ty
 
+groupTarget = 0
+
 
 def Auth(key):
     r = utils.MustPost('/auth', {
@@ -25,6 +27,10 @@ def Auth(key):
 def onMessage(ws, message):
     message = json.loads(message)
 
+    target = utils.ParseMsgGroup(message)
+    if groupTarget != 0 and target != groupTarget:
+        return
+
     pixiv.OnMessage(message)
     repeater.OnMessage(message)
     ty.OnMessage(message)
@@ -34,15 +40,19 @@ def onMessage(ws, message):
 @click.option('--news', help="Show news", type=bool, default=False, show_default=True)
 @click.option('--host', help="Mirai HTTP host", type=str, default="http://localhost:9500", show_default=True)
 @click.option('--key', help="Mirai HTTP key", type=str, default="sjtusebot1234", show_default=True)
+@click.option('--target', help="Target group by default, 0 for all", type=int, default=0, show_default=True)
 @click.argument('qq', type=int, required=True, nargs=1)
-def cli(news, host, key, qq):
+def cli(news, host, key, target, qq):
+    global groupTarget
+
     with open('VERSION', 'r') as f:
         version = f.read()
         print('SJTUSE-bot v' + version)
-
+    groupTarget = target
     utils.baseURL = host
     utils.qqNumber = qq
     print("Mirai host is set to", utils.baseURL)
+    print("Bot target is set to", groupTarget)
     print("QQ number is set to", utils.qqNumber)
 
     r = utils.MustGet('/about', isSession=False)
@@ -53,9 +63,12 @@ def cli(news, host, key, qq):
         r = utils.Get('/groupList')
         with open('NEWS', 'r') as f:
             news = f.read()
-            for i in r:
-                utils.SendGroupPlain(i['id'], news)
-
+            # support broadcast mode and single target mode
+            if groupTarget == 0:
+                for i in r:
+                    utils.SendGroupPlain(i['id'], news)
+            else:
+                utils.SendGroupPlain(groupTarget, news)
     lboss.Entry()
 
     wsURL = "ws://" + utils.baseURL.split("://", 2)[1]
