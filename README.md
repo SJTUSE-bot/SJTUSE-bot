@@ -73,7 +73,7 @@ Options:
 
 ```
 import bot
-import mod.[modname].main as main
+from . import main
 
 config = {
     'name': 'modname',              # 模块名
