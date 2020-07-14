@@ -3,11 +3,9 @@ import requests
 import json
 
 
-@utils.CheckAt
-def OnMessage(msg):
+@utils.TriggerAt
+def OnGroupMsg(msg, group, user):
     try:
-        group = msg['sender']['group']['id']
-        user = msg['sender']['id']
         r = requests.get(
             'https://api.lolicon.app/setu/', params={
                 'apikey': '522605455f0c66a4a242d8',
@@ -20,14 +18,11 @@ def OnMessage(msg):
                 url = r['data'][0]['url']
                 r = utils.UploadURL(url, 'group', 10)
                 if r != None:
-                    utils.TryPost('/sendGroupMessage', {
-                        'target': group,
-                        'messageChain': [
-                            {'type': 'At', 'target': user},
-                            {'type': 'Plain', 'text': '你要的涩图：' + url},
-                            {'type': 'Image', 'imageId': r['imageId']},
-                        ]
-                    })
+                    m = utils.Message(group=group)
+                    m.appendAt(user)
+                    m.appendPlain('你要的涩图：' + url)
+                    m.appendImage(r['imageId'])
+                    m.send()
                     print('[pixiv] send')
                     return
     except requests.exceptions.RequestException:
