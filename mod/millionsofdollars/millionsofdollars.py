@@ -1,10 +1,67 @@
+import json
 import random
-from nonebot import get_bot, on_command, CommandSession
+from functools import wraps
 from math import floor
+import re
+
+from utils import Message, SendGroupPlain
+
+commandStart = ['.', '']
+onCommandTree = {}
 
 
-def at(qq_id):
-    return f"[CQ:at,qq={ qq_id }]"
+def OnMessage(message):
+    session = {"sender": message["sender"],
+               "messageChain": message["messageChain"], "type": message["type"]}
+    command_name = ""
+    now_parsing = []
+    argc = -1
+    argv = []
+    for elem in message["messageChain"]:
+        if elem["type"] == "Source":
+            session["message_id"] = elem["id"]
+            session["time"] = elem["time"]
+        elif elem["type"] == "Plain":
+            for char in elem["text"]:
+                if char == ' ':
+                    argc += 1
+                    if argc > 0 and len(now_parsing) != 0:
+                        argv.append(now_parsing)
+                    now_parsing = []
+                    continue
+                if argc == -1:
+                    command_name += char
+                else:
+                    if len(now_parsing) == 0 or type(now_parsing[-1]) != str:
+                        now_parsing.append(char)
+                    else:
+                        now_parsing[-1] += char
+        else:
+            now_parsing.append(elem)
+    argv.append(now_parsing)
+    session["argc"] = argc
+    session["argv"] = argv
+
+    r = f"[{'|'.join(commandStart)}]"
+    for key in onCommandTree:
+        if re.match(r + key, command_name) or \
+                ('' in commandStart and re.match(key, command_name)):
+            onCommandTree[key](session)
+
+
+def on_command(name, aliases):
+    def decorator(func):
+        f = func
+        onCommandTree[name] = f
+        for alias in aliases:
+            onCommandTree[alias] = f
+
+        def wrapper(*args, **kwargs):
+            return f(*args, **kwargs)
+
+        return wrapper
+
+    return decorator
 
 
 class MDError(Exception):
@@ -20,7 +77,7 @@ class Loot:
 
 
 class MDGlobal:
-    bot = get_bot()
+    bot = None
     group_map = {}
     player_map = {}
     loot_list = []
@@ -72,16 +129,22 @@ class Game:
         else:
             raise MDError("游戏已经开始，加入失败")
 
-    async def remove_player(self, user_id):
+    def remove_player(self, user_id):
+        m = Message(group=self.group_id)
         for i in range(len(self.players)):
             if self.players[i].qq_id == user_id:
-                await MDGlobal.bot.send_group_msg(group_id=self.group_id, message=f"{ at(self.players[i].qq_id) }退出成功")
+                m.appendAt(self.players[i].qq_id)
+                m.appendPlain("退出成功")
+                m.send()
                 self.players[i].destruct()
                 del self.players[i]
                 return
-        await MDGlobal.bot.send_group_msg(group_id=self.group_id, message=f"未找到{at(user_id)}")
+        m.appendPlain("未找到")
+        m.appendAt(user_id)
+        m.send()
 
     def try_end_game(self):
+        m = Message(group=self.group_id)
         max_player = None
         max_value = 0
         for player in self.players:
@@ -92,45 +155,57 @@ class Game:
         if max_player is not None:
             self.reset()
             self.status = Game.Status.Pending
-            return f"游戏结束！玩家{ at(max_player.qq_id) }胜利！\n如果需要再次开始游戏，请输入.md start"
-        return ""
+            m.appendPlain("游戏结束！玩家")
+            m.appendAt(max_player.qq_id)
+            m.appendPlain("胜利！\n如果需要再次开始游戏，请输入.md start")
+            m.send()
+            return True
+        return False
 
-    async def start_game(self):
+    def start_game(self):
         if not 4 <= len(self.players) <= 8:
-            await MDGlobal.bot.send_group_msg(group_id=self.group_id, message=f"目前体验版只支持 4 到 8 人游玩。\n当前玩家人数为 { len(self.players) } 人，无法开始游戏")
+            SendGroupPlain(
+                group=self.group_id, msg=f"目前体验版只支持 4 到 8 人游玩。\n当前玩家人数为 {len(self.players)} 人，无法开始游戏")
             return
         self.status = Game.Status.Running
-        await self.do_phrase()
+        self.do_phrase()
 
-    async def show_balance(self):
-        msg_list = []
+    def show_balance(self):
+        m = Message(group=self.group_id)
         for player in self.players:
-            msg_list.append(
-                f"{ at(player.qq_id) }：{player.balance}00万美金，威胁卡数量：{player.intimidation}")
-        await MDGlobal.bot.send_group_msg(group_id=self.group_id, message="当前财产状况：\n" + '\n'.join(msg_list))
+            m.appendAt(player.qq_id)
+            m.appendPlain(
+                f"：{player.balance}00万美金，威胁卡数量：{player.intimidation}\n")
+        m.strip()
+        m.send()
 
-    async def do_phrase(self):
+    def do_phrase(self):
+        m = Message(group=self.group_id)
         if self.phrase == Game.Phrase.Planning:
             self.loot_players = {}
             self.loot = MDGlobal.loot_list[self.loot_index]
             self.loot_index += 1
             if self.loot.role != 0:
-                msg = f"谋划阶段：第{ self.loot_index }轮\n当前银行战利品为{ self.loot.loot }00万美金，保证金{ self.loot.ante }00万美金，加成角色为{ MDGlobal.card_name[self.loot.role ]}\n"
+                m.appendPlain(
+                    f"谋划阶段：第{self.loot_index}轮\n当前银行战利品为{self.loot.loot}00万美金，保证金{self.loot.ante}00万美金，加成角色为{MDGlobal.card_name[self.loot.role]}\n")
             else:
-                msg = f"谋划阶段：第{self.loot_index}轮\n当前银行战利品为{self.loot.loot}00万美金，保证金{self.loot.ante}00万美金\n"
+                m.appendPlain(
+                    f"谋划阶段：第{self.loot_index}轮\n当前银行战利品为{self.loot.loot}00万美金，保证金{self.loot.ante}00万美金\n")
             for player in self.players:
                 player.role = Player.Role.TBD
                 player.exit = False
                 self.ante[player.qq_id] = player.minus_balance(self.loot.ante)
-                msg += f'玩家{ at(player.qq_id) }已缴纳保证金{ self.ante[player.qq_id] }00万美金\n'
-            await MDGlobal.bot.send_group_msg(group_id=self.group_id,
-                                              message=msg + "\n请玩家私聊 bot 输入 .md [角色名] 决定本回合要扮演的角色")
+                m.appendPlain("玩家")
+                m.appendAt(player.qq_id)
+                m.appendPlain(f"已缴纳保证金{self.ante[player.qq_id]}00万美金\n")
+            m.appendPlain("请玩家私聊 bot 输入 .md [角色名] 决定本回合要扮演的角色")
+            m.send()
         elif self.phrase == Game.Phrase.Negotiation:
             random.shuffle(self.players)
             msg = "谈判阶段：\n目前已知晓的玩家身份有："
             for i in range(1, len(self.players)):
-                msg += f'{ MDGlobal.card_name[self.players[i].role] }、'
-            await MDGlobal.bot.send_group_msg(group_id=self.group_id, message=msg[:-1])
+                msg += f'{MDGlobal.card_name[self.players[i].role]}、'
+            SendGroupPlain(group=self.group_id, msg=msg.strip())
         elif self.phrase == Game.Phrase.TheHeist:
             self.roles = [[], [], [], [], [], []]
             for player in self.players:
@@ -138,21 +213,26 @@ class Game:
                     self.roles[player.role].append(player)
             snitches = self.roles[1]
             if len(snitches) == 0:
-                await MDGlobal.bot.send_group_msg(group_id=self.group_id, message="无告密者，继续下一阶段")
-                await self.phrase3_continue(0)
+                SendGroupPlain(group=self.group_id, msg="无告密者，继续下一阶段")
+                self.phrase3_continue(0)
             elif len(snitches) == 1:
-                msg = f"告密者为{ at(snitches[0].qq_id) }，请告密者输入 .md rm [角色种类] 决定要移除的角色"
+                m = Message()
+                m.appendPlain("告密者为")
+                m.appendAt(snitches[0].qq_id)
+                m.appendPlain("，请告密者输入 .md rm [角色种类] 决定要移除的角色")
                 self.loot_players[Player.Role.Snitch] = snitches[0]
-                await MDGlobal.bot.send_group_msg(group_id=self.group_id, message=msg)
+                m.send()
             else:
-                msg = "告密者为"
+                m = Message()
+                m.appendPlain("告密者为")
                 for player in snitches:
-                    msg += at(player.qq_id) + "、"
-                msg = msg[:-1] + '\n所有告密者将被淘汰，并无法取回保证金'
-                await MDGlobal.bot.send_group_msg(group_id=self.group_id, message=msg)
-                await self.phrase3_continue(0)
+                    m.appendAt(player.qq_id)
+                    m.appendPlain("、")
+                m.appendPlain('\n所有告密者将被淘汰，并无法取回保证金')
+                m.send()
+                self.phrase3_continue(0)
 
-    async def phrase3_continue(self, role):
+    def phrase3_continue(self, role):
         if role != 0:
             flag = False
             for i in range(1, len(self.players)):
@@ -161,47 +241,60 @@ class Game:
                     break
             if not flag:
                 raise MDError("告密者只能选择场上出现过的角色")
-        msg = ""
+        m = Message()
         for i in range(2, 6):
             arr = self.roles[i]
-            arr_list = []
-            for p in arr:
-                arr_list.append(at(p.qq_id))
-            arr_str = '、'.join(arr_list)
+
+            def appendRoleArr(msg: Message):
+                for p in arr:
+                    msg.appendAt(p.qq_id)
+                    msg.appendPlain("、")
+                del msg.chain[-1]
+
             if i == role:
                 if i == Player.Role.Brute:
-                    msg += f"暴徒已被告密者移除，但暴徒们（{ arr_str }）取回了自己的保证金\n"
+                    m.appendPlain("暴徒已被告密者移除，但暴徒们（")
+                    appendRoleArr(m)
+                    m.appendPlain("）取回了自己的保证金\n")
                     for p in arr:
                         p.add_balance(self.ante[p.qq_id])
                 else:
-                    msg += f"{MDGlobal.card_name[i]}们（{ arr_str }）已被告密者移除\n"
+                    m.appendPlain(f"{MDGlobal.card_name[i]}们（")
+                    appendRoleArr(m)
+                    m.appendPlain("已被告密者移除\n")
                 continue
 
             if len(arr) == 0:
-                msg += f"无{MDGlobal.card_name[i]}\n"
+                m.appendPlain(f"无{MDGlobal.card_name[i]}\n")
                 continue
             elif len(arr) == 1:
-                msg += f"{MDGlobal.card_name[i]}人选已确定：{arr_str}\n"
+                m.appendPlain(f"{MDGlobal.card_name[i]}人选已确定：")
+                appendRoleArr(m)
+                m.appendPlain("\n")
                 self.loot_players[i] = arr[0]
                 continue
             else:
                 if i == Player.Role.Brute:
-                    msg += f"暴徒们（{arr_str}）因数量太多被移除了，但暴徒们取回了自己的保证金\n"
+                    m.appendPlain("暴徒们（")
+                    appendRoleArr(m)
+                    m.appendPlain("）因数量太多被移除了，但暴徒们取回了自己的保证金\n")
                     for p in arr:
                         p.add_balance(self.ante[p.qq_id])
                 else:
-                    msg += f"{MDGlobal.card_name[i]}们（{arr_str}）数量太多，被全部移除了\n"
+                    m.appendPlain(f"{MDGlobal.card_name[i]}们（")
+                    appendRoleArr(m)
+                    m.appendPlain("）数量太多，被全部移除了\n")
                 continue
         if len(self.loot_players) == 1 and Player.Role.Snitch in self.loot_players:
-            msg += f"最后的队伍只剩下告密者。告密者亏损了300万美金！"
+            m.appendPlain("最后的队伍只剩下告密者。告密者亏损了300万美金！")
             self.loot_players[Player.Role.Snitch].minus_balance(3)
-            await MDGlobal.bot.send_group_msg(group_id=self.group_id, message=msg)
+            m.send()
         else:
-            msg += f"共有{len(self.loot_players)}名玩家行动成功！\n"
+            m.appendPlain(f"共有{len(self.loot_players)}名玩家行动成功！\n")
             money = self.loot.loot
             if Player.Role.MasterMind in self.loot_players:
                 money += 2
-                msg += "因为队伍里存在谋士，因此战利品增加了200万美金！\n"
+                m.appendPlain("因为队伍里存在谋士，因此战利品增加了200万美金！\n")
             d = {}
             for key in self.loot_players:
                 d[key] = floor(money / len(self.loot_players))
@@ -215,7 +308,7 @@ class Game:
                         d[r] -= 1
             if Player.Role.Brute in self.loot_players:
                 self.loot_players[Player.Role.Brute].intimidation += 1
-            msg += "最终收获如下：\n"
+            m.appendPlain("最终收获如下：\n")
             msg_list = []
             for r in d:
                 if self.loot.role == r:
@@ -224,22 +317,20 @@ class Game:
                     f"{MDGlobal.card_name[r]}：{d[r]}00万美金" + ("、1张威胁卡" if r == Player.Role.Brute else ""))
                 self.loot_players[r].add_balance(
                     d[r] + self.ante[self.loot_players[r].qq_id])
-            msg += '\n'.join(msg_list)
-            await MDGlobal.bot.send_group_msg(group_id=self.group_id, message=msg)
-        await self.show_balance()
-        msg = self.try_end_game()
-        if msg == "":
+            msg = '\n'.join(msg_list)
+            m.appendPlain(msg)
+            m.send()
+        self.show_balance()
+        if not self.try_end_game():
             self.phrase = Game.Phrase.Planning
-            await self.do_phrase()
-        else:
-            await MDGlobal.bot.send_group_msg(group_id=self.group_id, message=msg)
+            self.do_phrase()
 
-    async def try_next(self):
+    def try_next(self):
         for player in self.players:
             if player.role == 0:
                 return
         self.phrase = Game.Phrase.Negotiation
-        await self.do_phrase()
+        self.do_phrase()
 
 
 class Player:
@@ -296,83 +387,95 @@ MDGlobal.loot_list.append(Loot(Player.Role.TBD, 1, 9))
 random.shuffle(MDGlobal.loot_list)
 
 
-@on_command('million_dollars', aliases=['md', '00万美金'], only_to_me=False)
-async def million_dollars(session: CommandSession):
-    args = session.state['args']
-    user_id = session.ctx['sender']['user_id']
-    if 'group_id' in session.ctx:
-        group_id = session.ctx['group_id']
+@on_command('million_dollars', aliases=['md', '百万美金'])
+def million_dollars(session):
+    args = session['argv']
+    user_id = session['sender']['id']
+    if 'group' in session['sender']:
+        group_id = session['sender']['group']['id']
     else:
         group_id = 0
     if args[0] == "new" and group_id != 0:
         Game(group_id)
-        await session.send(f"群{group_id}的游戏已创建")
+        SendGroupPlain(msg=f"群{group_id}的游戏已创建", group=group_id)
         return
     game = (None if group_id not in MDGlobal.group_map else MDGlobal.group_map[group_id]) or \
            (None if user_id not in MDGlobal.player_map else MDGlobal.player_map[user_id].game)
     if game is None:
-        await session.send("本群还未创建游戏，请输入 .md new 创建")
+        SendGroupPlain(msg="本群还未创建游戏，请输入 .md new 创建", group=group_id)
         return
 
     if args[0] == "dismiss":
         game.destruct()
-        await session.send("游戏已解散")
+        session.send("游戏已解散")
         return
     if args[0] == "join":
         game.add_player(user_id)
-        await session.send(f"{at(user_id)}已加入")
+        m = Message()
+        m.appendAt(user_id)
+        m.appendPlain("已加入")
+        m.send()
         return
     if args[0] == "leave":
-        await game.remove_player(user_id)
+        game.remove_player(user_id)
+        m = Message()
+        m.appendAt(user_id)
+        m.appendPlain("已退出")
+        m.send()
         return
     if args[0] == "start":
-        await game.start_game()
-        # await session.send("游戏开始")
+        game.start_game()
+        # session.send("游戏开始")
         return
 
     if game.status == Game.Status.Pending:
-        await session.send("游戏未开始。若准备完毕，请使用 .md start 开始")
+        SendGroupPlain(msg="游戏未开始。若准备完毕，请使用 .md start 开始", group=group_id)
         return
 
     if args[0] in ["告密者", "暴徒", "恶棍", "司机", "谋士"]:
         if game.phrase == Game.Phrase.Planning and MDGlobal.player_map[user_id].role == 0:
             MDGlobal.player_map[user_id].role = MDGlobal.card_name.index(
                 args[0])
-        await session.send(f"你已选择{args[0]}角色")
-        await game.try_next()
+        SendGroupPlain(
+            message_type=session["type"], group=group_id, qq=user_id, msg=f"你已选择{args[0]}角色")
+        game.try_next()
         return
 
     if args[0] == "st":
-        await game.show_balance()
+        game.show_balance()
         return
     if args[0] == "see" and game.phrase == Game.Phrase.Negotiation and MDGlobal.player_map[user_id].intimidation > 0:
-        r_id = int(args[1][10:-1])
+        r_id = args[1]["target"]
         pl2 = MDGlobal.player_map[r_id]
         MDGlobal.player_map[user_id].intimidation -= 1
-        await MDGlobal.bot.send_private_msg(user_id=user_id, message=f"{ r_id }的身份是{ MDGlobal.card_name[pl2.role]}")
+        SendGroupPlain(message_type="TempMessage", qq=user_id,
+                       group=group_id, msg=f"{r_id}的身份是{MDGlobal.card_name[pl2.role]}")
     if args[0] == "exit" and game.phrase == Game.Phrase.Negotiation:
         MDGlobal.player_map[user_id].exit = True
         MDGlobal.player_map[user_id].add_balance(game.ante[user_id])
-        await session.send(f"{ at(user_id)}已退出")
+        game.add_player(user_id)
+        m = Message()
+        m.appendAt(user_id)
+        m.appendPlain("已放弃本轮行动")
+        m.send()
     if args[0] == "en" and game.phrase == Game.Phrase.Negotiation:
         game.phrase = Game.Phrase.TheHeist
-        await game.do_phrase()
+        game.do_phrase()
     if args[0] == "rm" and game.phrase == Game.Phrase.TheHeist and game.roles[1][0] == MDGlobal.player_map[user_id]:
         try:
-            await game.phrase3_continue(MDGlobal.card_name.index(args[1]))
+            game.phrase3_continue(MDGlobal.card_name.index(args[1]))
         except MDError as e:
-            await session.send(e.message)
+            session.send(e.message)
     if args[0] == "pay":
         pl1 = MDGlobal.player_map[user_id]
-        r_id = int(args[1][10:-1])
+        r_id = args[1]["target"]
         pl2 = MDGlobal.player_map[r_id]
         amount = int(args[2])
         pay_value = pl1.minus_balance(amount)
         pl2.add_balance(pay_value)
-        await session.send(f"{ at(user_id) }向{ at(r_id) }汇款{ pay_value }00万美金")
-
-
-@million_dollars.args_parser
-async def _(session: CommandSession):
-    arr = session.current_arg.strip().split(' ')
-    session.state['args'] = arr
+        m = Message()
+        m.appendAt(user_id)
+        m.appendPlain("向")
+        m.appendAt(r_id)
+        m.appendPlain("汇款{pay_value}00万美金")
+        m.send()

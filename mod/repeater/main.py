@@ -1,13 +1,14 @@
 import utils
+import threading
 
 history = {}
+lock = threading.Lock()
 
 
-def OnMessage(msg):
+def OnGroupMsg(msg, group, user):
     global history
 
-    if msg['type'] == 'GroupMessage':
-        group = msg['sender']['group']['id']
+    with lock:
         if len(msg['messageChain']) == 2 and msg['messageChain'][1]['type'] == 'Plain':
             text = msg['messageChain'][1]['text']
             if group not in history:

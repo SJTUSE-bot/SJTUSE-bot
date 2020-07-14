@@ -1,0 +1,4 @@
+requests==2.21.0
+decorator==4.4.2
+click==7.1.2
+websocket-client==0.57.0
