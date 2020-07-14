@@ -7,6 +7,7 @@ import tempfile
 baseURL = ''
 sessionKey = ''
 qqNumber = 0
+target = ''
 
 
 @decorator

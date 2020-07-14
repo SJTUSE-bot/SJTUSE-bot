@@ -23,6 +23,10 @@ def Auth():
 
 
 def onMessage(ws, message):
+    group = message['sender']['group']['id']
+    target = utils.target
+    if target != 'broadcast' and int(target) != group:
+        return
     message = json.loads(message)
 
     pixiv.OnMessage(message)
@@ -32,15 +36,17 @@ def onMessage(ws, message):
 
 @click.command(context_settings=dict(help_option_names=['-h', '--help']))
 @click.option('--host', help="Mirai HTTP host", type=str, default="http://localhost:9500", show_default=True)
+@click.option('--target',help="Target group or broadcast by default", type=str, default="broadcast", show_default=True)
 @click.argument('qq', type=int, required=True, nargs=1)
-def cli(host, qq):
+def cli(host, target, qq):
     with open('VERSION', 'r') as f:
         version = f.read()
         print('SJTUSE-bot v' + version)
-
+    utils.target = target
     utils.baseURL = host
     utils.qqNumber = qq
     print("Mirai host is set to", utils.baseURL)
+    print("Bot target is set to", utils.target)
     print("QQ number is set to", utils.qqNumber)
 
     r = utils.MustGet('/about', isSession=False)
@@ -52,9 +58,12 @@ def cli(host, qq):
         r = utils.Get('/groupList')
         with open('News', 'r') as f:
             news = f.read()
-            for i in r:
-                utils.SendGroupPlain(i['id'], news)
-
+            # support broadcast mode and single target mode
+            if target == "broadcast":
+                for i in r:
+                    utils.SendGroupPlain(i['id'], news)
+            else:
+                utils.SendGroupPlain(int(target),news)
     lboss.Entry()
 
     wsURL = "ws://" + utils.baseURL.split("://", 2)[1]
