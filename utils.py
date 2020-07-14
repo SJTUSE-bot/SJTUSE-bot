@@ -103,3 +103,13 @@ def CheckAt(func, msg=0, trigger='', *args, **kw):
             if msg['messageChain'][2]['type'] == 'Plain' and msg['messageChain'][2]['text'].lstrip() in trigger.split('|'):
                 r = func(*args, **kw)
     return r
+
+
+def ParseMsgGroup(msg):
+    '''
+    Parse message group number.
+    Return None for not group, otherwise group number
+    '''
+    if 'sender' in msg and 'group' in msg['sender']:
+        return msg['sender']['group']['id']
+    return None
