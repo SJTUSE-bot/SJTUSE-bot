@@ -3,7 +3,7 @@ import time
 import utils
 
 
-def remainder():
+def reminder():
     while True:
         tm = time.localtime(time.time())
         if tm.tm_hour == 8 and tm.tm_min == 0:
@@ -14,4 +14,4 @@ def remainder():
 
 
 def Entry():
-    _thread.start_new_thread(remainder, ())
+    _thread.start_new_thread(reminder, ())

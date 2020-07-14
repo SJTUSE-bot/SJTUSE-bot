@@ -32,6 +32,10 @@ def onMessage(ws, message):
 @click.option('--host', help="Mirai HTTP host", type=str, default="http://localhost:9500", show_default=True)
 @click.argument('qq', type=int, required=True, nargs=1)
 def cli(host, qq):
+    with open('VERSION', 'r') as f:
+        version = f.read()
+        print('SJTUSE-bot v' + version)
+
     utils.baseURL = host
     utils.qqNumber = qq
     print("Mirai host is set to", utils.baseURL)

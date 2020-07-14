@@ -4,6 +4,8 @@ history = {}
 
 
 def OnMessage(msg):
+    global history
+
     if msg['type'] == 'GroupMessage':
         group = msg['sender']['group']['id']
         if len(msg['messageChain']) == 2 and msg['messageChain'][1]['type'] == 'Plain':
