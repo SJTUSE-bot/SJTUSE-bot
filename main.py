@@ -6,6 +6,7 @@ import websocket
 from mod.lboss import main as lboss
 from mod.repeater import main as repeater
 from mod.pixiv import main as pixiv
+from mod.ty import main as ty
 
 
 def Auth():
@@ -26,6 +27,7 @@ def onMessage(ws, message):
 
     pixiv.OnMessage(message)
     repeater.OnMessage(message)
+    ty.OnMessage(message)
 
 
 @click.command(context_settings=dict(help_option_names=['-h', '--help']))
