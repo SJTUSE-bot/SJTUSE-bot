@@ -18,3 +18,5 @@ def OnMessage(msg):
             if cnt == 2:
                 utils.SendGroupPlain(666041783, '大家不要迫害ty～')
                 print('[ty] send')
+        else:
+            cnt = 0
