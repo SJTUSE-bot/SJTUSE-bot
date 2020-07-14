@@ -1,5 +1,5 @@
 import bot
-import mod.repeater.main as main
+from . import main
 
 config = {
     'name': 'repeater',

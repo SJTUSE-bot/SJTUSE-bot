@@ -1,5 +1,5 @@
 import bot
-import mod.ty.main as main
+from . import main
 
 config = {
     'name': 'ty',

@@ -1,5 +1,5 @@
 import bot
-import mod.lboss.main as main
+from . import main
 
 config = {
     'name': 'lboss',

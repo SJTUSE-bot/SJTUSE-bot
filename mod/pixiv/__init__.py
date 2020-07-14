@@ -1,5 +1,5 @@
 import bot
-import mod.pixiv.main as main
+from . import main
 
 config = {
     'name': 'pixiv',
