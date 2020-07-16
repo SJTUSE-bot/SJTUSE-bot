@@ -203,11 +203,11 @@ def TriggerCmd(func, trigger=[], *args, **kw):
 def TriggerAt(func, trigger=[], *args, **kw):
     '''Trigger @ message on condition.
 
-    :param trigger: trigger the function when the text equals one of the trigger.
+    :param trigger: trigger the function when the text start with one of the trigger.
 
     e.g. @TriggerAt will trigger when message is '@bot' and '@bot '(trimmed right space when no other text)
 
-    e.g. @TriggerAt(trigger=['bot1','bot2']) will trigger when message is '@bot bot1' but not '@bot bot2 '(space not trim)
+    e.g. @TriggerAt(trigger=['bot1','bot2 ']) will trigger when message is '@bot bot1' or '@botbot1'(trim left space) but not '@bot bot2'(no space at end)
     '''
     r = None
     msg = args[0]
@@ -218,9 +218,22 @@ def TriggerAt(func, trigger=[], *args, **kw):
                 r = func(*args, **kw)
     else:
         if len(msg['messageChain']) == 3 and msg['messageChain'][1]['type'] == 'At' and msg['messageChain'][1]['target'] == qqNumber:
-            if msg['messageChain'][2]['type'] == 'Plain' and msg['messageChain'][2]['text'].lstrip() in trigger:
-                r = func(*args, **kw)
+            for i in trigger:
+                if msg['messageChain'][2]['type'] == 'Plain' and msg['messageChain'][2]['text'].lstrip().startswith(i):
+                    return func(*args, **kw)
     return r
+
+
+@decorator
+def TriggerAdmin(func, *args, **kw):
+    '''Trigger group Admin message.
+
+    Trigger only when admin or owner send message.
+    '''
+    msg = args[0]
+    if msg['sender']['permission'] == 'OWNER' or msg['sender']['permission'] == 'ADMINISTRATOR':
+        return func(*args, **kw)
+    return None
 
 
 def ParseMsgGroup(msg):

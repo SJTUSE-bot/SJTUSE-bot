@@ -101,6 +101,7 @@ def onUserMsg(msg, user):
 
 - `TriggerCmd`：指定文本前缀触发
 - `TriggerAt`：指定 `@机器人` 前缀触发
+- `TriggerAdmin`：管理员或群主发送消息触发
 
 如有其他需要欢迎提交issue/PR
 
