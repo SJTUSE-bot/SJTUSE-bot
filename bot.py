@@ -44,7 +44,7 @@ def onMessage(ws, message):
 
 
 @click.command(context_settings=dict(help_option_names=['-h', '--help']))
-@click.option('--news', help='Show news', type=bool, default=False, show_default=True)
+@click.option('--news', help='Show news', is_flag=True)
 @click.option('--host', help='Mirai HTTP host', type=str, default='http://localhost:9500', show_default=True)
 @click.option('--key', help='Mirai HTTP key', type=str, default='sjtusebot1234', show_default=True)
 @click.option('--target', help='Target group by default, 0 for all', type=int, default=0, show_default=True)

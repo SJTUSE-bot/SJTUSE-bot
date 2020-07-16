@@ -39,7 +39,7 @@ python3 main.py [qqnumber]
 Usage: bot.py [OPTIONS] QQ
 
 Options:
-  --news BOOLEAN    Show news  [default: False]
+  --news            Show news
   --host TEXT       Mirai HTTP host  [default: http://localhost:9500]
   --key TEXT        Mirai HTTP key  [default: sjtusebot1234]
   --target INTEGER  Target group by default, 0 for all  [default: 0]
