@@ -17,7 +17,7 @@ def Entry():
             if i[0] < tm:
                 msg = utils.Message(group=i[1])
                 msg.appendAtAll()
-                msg.appendPlain(' ' + i[2])
+                msg.appendPlain(i[2])
                 msg.send()
                 print('[reminder] send')
                 plan.remove(i)
@@ -40,5 +40,5 @@ def OnGroupMsg(msg, group, user):
 
     msg = utils.Message(group=group)
     msg.appendAt(user)
-    msg.appendPlain(' 闹钟已添加')
+    msg.appendPlain('闹钟已添加')
     msg.send()
