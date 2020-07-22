@@ -9,23 +9,22 @@ def OnGroupMsg(msg, group, user):
     global history
 
     with lock:
-        if len(msg['messageChain']) == 2 and msg['messageChain'][1]['type'] == 'Plain':
-            text = msg['messageChain'][1]['text']
-            if group not in history:
-                history[group] = {}
-                history[group]['msg'] = text
-                history[group]['times'] = 0
-            if history[group]['msg'] == text:
-                history[group]['times'] += 1
-            else:
-                history[group]['msg'] = text
-                history[group]['times'] = 1
-
-            if history[group]['times'] == 3:
-                utils.SendGroupPlain(group, text)
-                print('[repeater] send')
-        else:
-            if group not in history:
-                history[group] = {}
-            history[group]['msg'] = ''
+        data = msg['messageChain'][1:]
+        for i in range(len(data)):
+            if data[i]['type'] == 'Image':
+                data[i]['url'] = None
+        if group not in history:
+            history[group] = {}
+            history[group]['msg'] = data
             history[group]['times'] = 0
+        if history[group]['msg'] == data:
+            history[group]['times'] += 1
+        else:
+            history[group]['msg'] = data
+            history[group]['times'] = 1
+
+        if history[group]['times'] == 3:
+            msg = utils.Message(group=group)
+            msg.appendCustom(data)
+            msg.send()
+            print('[repeater] send')

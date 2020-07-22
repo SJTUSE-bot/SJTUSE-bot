@@ -48,6 +48,13 @@ class Message:
         else:
             assert 0
 
+    def appendCustom(self, data):
+        if isinstance(data, dict):
+            self.chain.append(data)
+        else:
+            for i in data:
+                self.chain.append(i)
+
     def appendPlain(self, msg):
         self.chain.append({
             "type": "Plain",
