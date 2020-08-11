@@ -13,10 +13,13 @@ def OnGroupMsg(msg, group, user):
         if group == 666041783:
             if len(msg['messageChain']) == 2 and msg['messageChain'][1]['type'] == 'Plain':
                 text = msg['messageChain'][1]['text']
-                if re.search('[^a-zA-Z]?ty[^a-zA-Z]?', text) != None:
+                if re.search('\bty\b', text) != None:
                     cnt += 1
                 else:
-                    cnt = 0
+                    if re.search('\bnpy\b', text) != None:
+                        cnt += 1
+                    else:
+                        cnt = 0
 
                 if cnt == 2:
                     utils.SendGroupPlain(666041783, '大家不要迫害ty～')
