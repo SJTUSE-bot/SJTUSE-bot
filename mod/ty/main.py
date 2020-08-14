@@ -13,10 +13,12 @@ def OnGroupMsg(msg, group, user):
         if group == 666041783:
             if len(msg['messageChain']) == 2 and msg['messageChain'][1]['type'] == 'Plain':
                 text = msg['messageChain'][1]['text']
-                if re.search('\bty\b', text) != None:
+                if re.search('[^a-zA-Z]?ty[^a-zA-Z]?', text) != None:
                     cnt += 1
+                    if re.search('[^a-zA-Z]?npy[^a-zA-Z]?', text) != None:
+                        cnt += 1
                 else:
-                    if re.search('\bnpy\b', text) != None:
+                    if re.search('[^a-zA-Z]?npy[^a-zA-Z]?', text) != None:
                         cnt += 1
                     else:
                         cnt = 0
